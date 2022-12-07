@@ -4,7 +4,3 @@ pub fn initialize_memory(instructions_to_be_inserted: Vec<u32>) -> Vec<Vec<u32>>
     let memory: Vec<Vec<u32>> = vec![instructions_to_be_inserted];
     return memory;
 }
-
-pub fn initialize_queue() -> Vec<u32> {
-    return vec![];
-}

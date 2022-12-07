@@ -2,7 +2,12 @@ use std::{convert::TryInto, vec};
 
 use crate::memory;
 
-
+/// Our UM struct that has all of the architecture for our universal machine
+/// * `memory`: 2D vector of integers that holds a memory segment (a vector of u32s)
+/// * `registers`: Vector of u32s that represent the 8 registers in our UM
+/// * `program_counter`: u32 that is the program counter for our UM
+/// * `instructions_vector`: Vector of u32s that represent all of the instructions in our program
+/// * `queue`: Vector of u32s that represents the queue we will use to aid us in making sure that we unmap and map our segments properly
 pub struct UM {
     pub memory: Vec<Vec<u32>>,
     pub registers: Vec<u32>,
@@ -30,7 +35,7 @@ impl UM {
     pub fn boot(&mut self, instructions_from_binary: Vec<u32>) {
         self.registers = vec![0; 8];
         self.instructions_vector = instructions_from_binary.clone();
-        self.memory.push(instructions_from_binary)
+        self.memory[0] = instructions_from_binary;
         
     }
 }

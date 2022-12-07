@@ -110,3 +110,7 @@ pub fn disassemble(inst: Umi) -> String {
         _ => {
             format!("INVALID OPERATION") },
 }}
+
+fn conditional_move(register_a: u32, register_b: u32, register_c: u32) {
+
+}
