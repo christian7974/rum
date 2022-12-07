@@ -1,6 +1,6 @@
 use std::{convert::TryInto, vec};
 
-use crate::memory;
+use crate::{memory, registers::execute_instruction};
 
 /// Our UM struct that has all of the architecture for our universal machine
 /// * `memory`: 2D vector of integers that holds a memory segment (a vector of u32s)
@@ -8,6 +8,7 @@ use crate::memory;
 /// * `program_counter`: u32 that is the program counter for our UM
 /// * `instructions_vector`: Vector of u32s that represent all of the instructions in our program
 /// * `queue`: Vector of u32s that represents the queue we will use to aid us in making sure that we unmap and map our segments properly
+///     #[derive(Copy, Clone)]
 pub struct UM {
     pub memory: Vec<Vec<u32>>,
     pub registers: Vec<u32>,
@@ -17,6 +18,7 @@ pub struct UM {
 }
 
 impl UM {
+    /// Function that will create a new instance of our UM
     pub fn new() -> UM {
         let rum: UM = UM {
             memory: vec![vec![]],
@@ -28,16 +30,34 @@ impl UM {
         return rum;
     }
 
-
     /// Boot function that will be called when the machine is started up before the program is ran; inititalizes the architecture 
-    /// of the machine. This is before we have started to read the inputted binary file.
-    /// * `self`: Means that this would affect the current instance of the UM (there will only be one UM running in our program)
+    /// of the machine.
+    /// * `self`: The instance of the universal machine struct
     pub fn boot(&mut self, instructions_from_binary: Vec<u32>) {
         self.registers = vec![0; 8];
         self.instructions_vector = instructions_from_binary.clone();
         self.memory[0] = instructions_from_binary;
         
     }
+
+    pub fn fetch(&mut self) -> u32 {
+        return self.instructions_vector[self.program_counter as usize];
+    }
+
+    /// Boot function that will be called when the machine is started up before the program is ran; inititalizes the architecture 
+    /// of the machine.
+    /// * `self`: The instance of the universal machine struct
+    pub fn run (&mut self) {
+        // decode and execute are in the execute_instruction function
+        // fetch instr, decode, execute
+        loop {
+            // fetch is getting insturction
+            let individual_instruction = self.fetch();
+            execute_instruction(self, individual_instruction);
+        }
+    }
+
+    
 }
 /// Load function that returns a vector of u32 integers representing the instructions from the binary that we read it
 /// * `input`: Option reference str that represents the name of the inputted binary file to run

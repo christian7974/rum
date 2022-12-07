@@ -1,9 +1,7 @@
-/// Initializes the registers that will hold integer values to be used in operations, returns the registers vector
-/// No parameters needed for this function, since our rum will always initialize 8 registers by default
-pub fn initialize_registers() -> Vec<u32>  {
-    let rum_memory: Vec<u32> = vec![0; 8];
-    return rum_memory;
-}
+use core::panic;
+use std::process::{exit};
+
+use crate::binary::{UM, load};
 
 type Umi = u32;
 pub struct Field {
@@ -16,7 +14,6 @@ static RC: Field = Field {width: 3, lsb: 0};
 static RL: Field = Field {width: 3, lsb: 25};
 static VL: Field = Field {width: 25, lsb: 0};
 static OP: Field = Field {width: 4, lsb: 28};
-
 /// Helper function to extract the proper field from an instruction
 /// * `bits`: u32 which represents the amount to shift left by
 fn mask(bits: u32) -> u32 { 
@@ -38,79 +35,180 @@ pub fn op(instruction: Umi) -> u32 {
 }
 enum Opcode {CMov, SegLoad, SegStore, ADD, MUL, DIV, BitNAND, HALT, MapSeg, UnmapSeg, Output, Input, LoadProgram, LoadValue}
 
-pub fn disassemble(inst: Umi) -> String {
+pub fn execute_instruction(machine: &mut UM , inst: Umi) {
     match get(&OP, inst) {
         o if o == Opcode::CMov as u32 => {
-            // run function for cmov
-            format!("if (r{} != 0) r{} := r{};", get(&RC, inst), get(&RA, inst), get(&RB, inst)) },
-
+            conditional_move(machine, 
+                get(&RA, inst), 
+                get(&RB, inst), 
+                get(&RC, inst))
+        },
         o if o == Opcode::SegLoad as u32 => {
-            // run segload function
-            format!("r{} := m[r{}][r{}];", get(&RA, inst), get(&RB, inst), get(&RC, inst)) },
+            segmented_load(machine, 
+                get(&RA, inst), 
+                get(&RB, inst), 
+                get(&RC, inst))
+            },
 
         o if o == Opcode::SegStore as u32 => {
-            // run segstore function
-            format!("m[r{}][r{}] := r{}", get(&RA, inst), get(&RB, inst), get(&RC, inst)) },
+            segmented_store(machine, 
+                get(&RA, inst), 
+                get(&RB, inst), 
+                get(&RC, inst))
+           },
 
         o if o == Opcode::ADD as u32 => {
-            // add func
-            format!("r{} := (r{} + r{}) mod 2^32", get(&RA, inst), get(&RB, inst), get(&RC, inst)) },
+            addition(machine, 
+                get(&RA, inst), 
+                get(&RB, inst), 
+                get(&RC, inst))
+            },
 
         o if o == Opcode::MUL as u32 => {
-            // mul function
-            format!("r{} := (r{} * r{}) mod 2^32", get(&RA, inst), get(&RB, inst), get(&RC, inst)) },
+            multiplication(machine, 
+                get(&RA, inst), 
+                get(&RB, inst), 
+                get(&RC, inst))
+            },
 
         o if o == Opcode::DIV as u32 => {
-            // div function
-            format!("r{} := (r{} / r{}) (integer division)", get(&RA, inst), get(&RB, inst), get(&RC, inst)) },
+            division(machine, 
+                get(&RA, inst), 
+                get(&RB, inst), 
+                get(&RC, inst))
+           },
             
         o if o == Opcode::BitNAND as u32 => {
-            // bitnand function
-            format!("r{} := ¬(r{} ^ r{}) mod 2^32", get(&RA, inst), get(&RB, inst), get(&RC, inst)) },
+            bit_nand(machine, 
+                get(&RA, inst), 
+                get(&RB, inst), 
+                get(&RC, inst))
+           },
 
         o if o == Opcode::HALT as u32 => {
-            // run halt
-            format!("halt") },
+            halt()
+           },
 
         o if o == Opcode::MapSeg as u32 => {
-            // run mapseg
-            format!("A new segment is created with a number of words
-                equal to the value in $r[C]. Each word in the
-                new segment is initialized to zero. A bit pattern
-                that is not all zeroes and does not identify any
-                currently mapped segment is placed in $r[B].
-                The new segment is mapped as $m[$r[B]]")},
+            map_segment(machine, 
+                get(&RB, inst),
+                get(&RC, inst))
+            },
 
         o if o == Opcode::UnmapSeg as u32 => {
-            // run unmap seg
-            format!(" The segment $m[$r[C]] is unmapped.
-            Future Map Segment instructions may reuse the
-            identifier $r[C].") },
+            unmap_segment(machine, 
+                get(&RC, inst))
+        },
 
         o if o == Opcode::Output as u32 => {
-            // run output
-            format!("The value in $r[C] is displayed on the I/O device immediately. Only values from 0 to 255 are allowed.") },
+            output(machine, 
+                get(&RC, inst))
+        },
            
         o if o == Opcode::Input as u32 => {
-            // run input
-            format!("The UM waits for input on the I/O device. When
-            input arrives, $r[c] is loaded with the input,
-            which must be a value from 0 to 255. If the end
-            of input has been signaled, then $r[C] is loaded
-            with a full 32-bit word in which every bit is 1") },
+            input(machine)
+        },
 
         o if o == Opcode::LoadProgram as u32 => {
-            // run loadprogram
-            format!("r{} := ¬(r{} ^ r{}) mod 2^32", get(&RA, inst), get(&RB, inst), get(&RC, inst)) },
+            load_program(machine, 
+                get(&RA, inst), 
+                get(&RB, inst))
+        },
 
         o if o == Opcode::LoadValue as u32 => {
-            // run loadvalue
-            format!("load a value into register A") },
+            load_value(machine, 
+                get(&RL, inst),
+            get(&VL, inst))
+        },
 
         _ => {
-            format!("INVALID OPERATION") },
+            panic!()
+        },
 }}
 
-fn conditional_move(register_a: u32, register_b: u32, register_c: u32) {
+fn inc_program_counter(machine: &mut UM, amount_to_increment: u32) {
+    machine.program_counter += amount_to_increment;
+}
 
+fn conditional_move(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
+    if machine.registers[register_c as usize] != 0 {
+        machine.registers[register_a as usize] = machine.registers[register_b as usize];
+        inc_program_counter(machine, 1);
+    } else {
+        panic!()
+    }  
+}
+
+fn segmented_load(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
+    machine.registers[register_a as usize] = machine.memory[register_b as usize][register_c as usize];
+    inc_program_counter(machine, 1);
+}
+
+fn segmented_store(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
+    inc_program_counter(machine, 1);
+    todo!()
+}
+
+fn addition(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
+    machine.registers[register_a as usize] = (machine.registers[register_b as usize] + machine.registers[register_c as usize]) % 2_u32.pow(32);
+    inc_program_counter(machine, 1);
+}
+
+fn multiplication(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
+    machine.registers[register_a as usize] = (machine.registers[register_b as usize] * machine.registers[register_c as usize]) % 2_u32.pow(32);
+    inc_program_counter(machine, 1);
+}
+
+fn division(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
+    machine.registers[register_a as usize] = machine.registers[register_b as usize] / machine.registers[register_c as usize];
+    inc_program_counter(machine, 1);
+}
+
+fn bit_nand(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
+    machine.registers[register_a as usize] = !(machine.registers[register_b as usize] & machine.registers[register_c as usize]);
+    inc_program_counter(machine, 1);
+}
+
+fn halt() {
+    exit(1);
+}
+
+// ask about this, still confusing
+fn map_segment(machine: &mut UM, register_b: u32, register_c: u32) {
+    let new_seg: Vec<u32> = vec![0; machine.registers[register_c as usize] as usize];
+    if register_c != 0 { // add other boolean check
+        machine.registers = new_seg
+    } else {
+        machine.memory[register_c as usize] = new_seg
+    }
+}
+
+fn unmap_segment(machine: &mut UM, register_c: u32) {
+    machine.queue.push(register_c);
+
+    machine.memory[register_c as usize] = [].to_vec();
+    inc_program_counter(machine, 1);
+}
+
+fn output(machine: &mut UM, register_c: u32) {
+    if machine.registers[register_c as usize] > 255 {
+        panic!();
+    } else {
+        println!("{}", machine.registers[register_c as usize]);
+    }
+    inc_program_counter(machine, 1)
+}
+
+fn input(machine: &mut UM) {
+
+}
+
+fn load_program(mut machine: &mut UM, register_b: u32, register_c: u32) { // DO NOT INC PROGRAM COUNTER HERE
+    let duplicated_seg: Vec<u32> = machine.memory[register_b as usize].clone();
+    machine.memory[0] = duplicated_seg;
+    machine.program_counter = machine.memory[0][machine.registers[register_c as usize] as usize];
+}
+
+fn load_value(machine: &mut UM, register_a_prime: u32, val_to_load: u32) {
+    machine.registers[register_a_prime as usize] = val_to_load;
 }
