@@ -234,6 +234,7 @@ fn map_segment(machine: &mut UM, register_b: u32, register_c: u32) {
     let new_seg_to_map = vec![initialized_word; num_words as usize];
     let address = map_memory_segment(machine, new_seg_to_map);
     machine.registers[register_b as usize] = address; 
+    inc_program_counter(machine, 1);
 }
 
 /// Function that is called for OPCODE 9 (Unmap Segment) that gets rid of a segment in our memory. We push that ID
