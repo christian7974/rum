@@ -1,6 +1,6 @@
 use core::panic;
 use std::process::{exit};
-
+use std::io;
 use crate::binary::{UM, load};
 
 type Umi = u32;
@@ -35,6 +35,10 @@ pub fn op(instruction: Umi) -> u32 {
 }
 enum Opcode {CMov, SegLoad, SegStore, ADD, MUL, DIV, BitNAND, HALT, MapSeg, UnmapSeg, Output, Input, LoadProgram, LoadValue}
 
+/// Function that will execute a singular instruction (will parse what the instruction says and call the appropriate function
+/// depending on the OPCODE)
+/// * `machine`: the machine that will have the instrution executed (of type UM)
+/// * `inst`: a type Umi (u32) that represents a singular instruction 
 pub fn execute_instruction(machine: &mut UM , inst: Umi) {
     match get(&OP, inst) {
         o if o == Opcode::CMov as u32 => {
@@ -106,7 +110,8 @@ pub fn execute_instruction(machine: &mut UM , inst: Umi) {
         },
            
         o if o == Opcode::Input as u32 => {
-            input(machine)
+            input(machine,
+                get(&RC, inst))
         },
 
         o if o == Opcode::LoadProgram as u32 => {
@@ -126,10 +131,18 @@ pub fn execute_instruction(machine: &mut UM , inst: Umi) {
         },
 }}
 
+/// Helper function that increments the program counter of the machine
+/// * `machine`: the machine to operate on (of type UM)
+/// * `amount_to_increment`: a u32 that is the amount to increment the program counter by (usually 1)
 fn inc_program_counter(machine: &mut UM, amount_to_increment: u32) {
     machine.program_counter += amount_to_increment;
 }
 
+/// Function that is called for OPCODE 0 (Conditional Move)
+/// * `machine`: the machine to operate on (of type UM)
+/// * `register_a`: u32 value that represents the value that is in register A
+/// * `register_b`: u32 value that represents the value that is in register B
+/// * `register_c`: u32 value that represents the value that is in register C
 fn conditional_move(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
     if machine.registers[register_c as usize] != 0 {
         machine.registers[register_a as usize] = machine.registers[register_b as usize];
@@ -139,42 +152,82 @@ fn conditional_move(machine: &mut UM, register_a: u32, register_b: u32, register
     }  
 }
 
+/// Function that is called for OPCODE 1 (Segmented Load)
+/// * `machine`: the machine to operate on (of type UM)
+/// * `register_a`: u32 value that represents the value that is in register A
+/// * `register_b`: u32 value that represents the value that is in register B
+/// * `register_c`: u32 value that represents the value that is in register C
 fn segmented_load(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
     machine.registers[register_a as usize] = machine.memory[register_b as usize][register_c as usize];
     inc_program_counter(machine, 1);
 }
 
+/// Function that is called for OPCODE 2 (Segmented Store)
+/// * `machine`: the machine to operate on (of type UM)
+/// * `register_a`: u32 value that represents the value that is in register A
+/// * `register_b`: u32 value that represents the value that is in register B
+/// * `register_c`: u32 value that represents the value that is in register C
 fn segmented_store(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
+    machine.memory[register_a as usize][register_b as usize] = register_c;
     inc_program_counter(machine, 1);
-    todo!()
 }
 
+/// Function that is called for OPCODE 3 (Addition) which involves adding the values in registers B and C, modding that value by 2^32 and
+///  then putting that sum into register A
+/// * `machine`: the machine to operate on (of type UM)
+/// * `register_a`: u32 value that represents the value that is in register A
+/// * `register_b`: u32 value that represents the value that is in register B
+/// * `register_c`: u32 value that represents the value that is in register C
 fn addition(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
     machine.registers[register_a as usize] = (machine.registers[register_b as usize] + machine.registers[register_c as usize]) % 2_u32.pow(32);
     inc_program_counter(machine, 1);
 }
 
+/// Function that is called for OPCODE 4 (Multiplication) which involves multiplying the values in registers B and C, modding that value by 2^32 and
+/// then putting that product into register A
+/// * `machine`: the machine to operate on (of type UM)
+/// * `register_a`: u32 value that represents the value that is in register A
+/// * `register_b`: u32 value that represents the value that is in register B
+/// * `register_c`: u32 value that represents the value that is in register C
 fn multiplication(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
     machine.registers[register_a as usize] = (machine.registers[register_b as usize] * machine.registers[register_c as usize]) % 2_u32.pow(32);
     inc_program_counter(machine, 1);
 }
 
+/// Function that is called for OPCODE 5 (Division) which involves dividing the values in registers B and C, and
+/// then putting that product into register A
+/// * `machine`: the machine to operate on (of type UM)
+/// * `register_a`: u32 value that represents the value that is in register A
+/// * `register_b`: u32 value that represents the value that is in register B
+/// * `register_c`: u32 value that represents the value that is in register C
 fn division(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
     machine.registers[register_a as usize] = machine.registers[register_b as usize] / machine.registers[register_c as usize];
     inc_program_counter(machine, 1);
 }
 
+/// Function that is called for OPCODE 6 (Bitwise NAND [NOT AND]) which involves calculating the bitwise AND in registers b and c and then taking the complement
+/// of that value
+/// * `machine`: the machine to operate on (of type UM)
+/// * `register_a`: u32 value that represents the value that is in register A
+/// * `register_b`: u32 value that represents the value that is in register B
+/// * `register_c`: u32 value that represents the value that is in register C
 fn bit_nand(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
     machine.registers[register_a as usize] = !(machine.registers[register_b as usize] & machine.registers[register_c as usize]);
     inc_program_counter(machine, 1);
 }
 
+/// Function that is called for OPCODE 7 (halt), terminating the program
 fn halt() {
     exit(1);
 }
 
-// ask about this, still confusing
+/// Function that is called for OPCODE 8 (Map Segment), creating a new segment and putting that segment into
+/// our memory.
+/// * `machine`: the machine to operate on (of type UM)
+/// * `register_b`: u32 value that represents the value that is in register B
+/// * `register_c`: u32 value that represents the value that is in register C
 fn map_segment(machine: &mut UM, register_b: u32, register_c: u32) {
+    // ASK FOR HELP WITH THIS
     let new_seg: Vec<u32> = vec![0; machine.registers[register_c as usize] as usize];
     if register_c != 0 { // add other boolean check
         machine.registers = new_seg
@@ -183,32 +236,56 @@ fn map_segment(machine: &mut UM, register_b: u32, register_c: u32) {
     }
 }
 
+/// Function that is called for OPCODE 9 (Unmap Segment) that gets rid of a segment in our memory.
+/// * `machine`: the machine to operate on (of type UM)
+/// * `register_c`: u32 value that represents the value that is in register C
 fn unmap_segment(machine: &mut UM, register_c: u32) {
     machine.queue.push(register_c);
 
+    // did this so that the indices would not change when we got rid of something
     machine.memory[register_c as usize] = [].to_vec();
     inc_program_counter(machine, 1);
 }
 
+/// Function that is called for OPCODE 10 (Output) that outputs the value in register C iff the value is greater than
+/// 0 and less than 255.
+/// * `machine`: the machine to operate on (of type UM)
+/// * `register_c`: u32 value that represents the value that is in register C
 fn output(machine: &mut UM, register_c: u32) {
     if machine.registers[register_c as usize] > 255 {
         panic!();
     } else {
         println!("{}", machine.registers[register_c as usize]);
     }
-    inc_program_counter(machine, 1)
+    inc_program_counter(machine, 1);
 }
 
-fn input(machine: &mut UM) {
-
+/// Function that is called for OPCODE 11 (Input) that inputs a value into register C.
+/// * `machine`: the machine to operate on (of type UM)
+/// * `register_c`: u32 value that represents the value that is in register C
+fn input(machine: &mut UM, register_c: u32) {
+    // ASK FOR HELP WITH THIS
+    todo!()
 }
 
+/// Function that is called for OPCODE 12 (Load Program) which takes an already existing memory segment, duplicating
+/// that segment and then putting that segment into the machine's instruction vector.
+/// * `machine`: the machine to operate on (of type UM)
+/// * `register_b`: u32 value that represents the value that is in register B
+/// * `register_c`: u32 value that represents the value that is in register C
 fn load_program(mut machine: &mut UM, register_b: u32, register_c: u32) { // DO NOT INC PROGRAM COUNTER HERE
     let duplicated_seg: Vec<u32> = machine.memory[register_b as usize].clone();
     machine.memory[0] = duplicated_seg;
     machine.program_counter = machine.memory[0][machine.registers[register_c as usize] as usize];
 }
 
+/// Function that is called for OPCODE 13 (Load Value) that loads a number into register A (the 3 bits after the
+/// OPCODE)
+/// * `machine`: the machine to operate on (of type UM)
+/// * `register_a_prime`: u32 value that represents the value that is in register A (but not the same register A 
+/// as the other instructions)
+/// * `val_to_load`: u32 value that represents the value to load into `register_a_prime`
 fn load_value(machine: &mut UM, register_a_prime: u32, val_to_load: u32) {
     machine.registers[register_a_prime as usize] = val_to_load;
+    inc_program_counter(machine, 1);
 }

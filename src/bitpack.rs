@@ -21,17 +21,12 @@ pub fn fitsu(n: u64, width: u64) -> bool {
 /// * `word`: An unsigned word
 /// * `width`: the width of a bit field
 /// * `lsb`: the least-significant bit of the bit field
-// pub fn getu(word: u64, width: u64, lsb: u64) -> u64 {
-    // let new_word = (word << 64 - width - lsb) >> 64 - width;
-    // return new_word;
-// }
 pub fn gets(word: u64, width: u64, lsb: u64) -> i64 {
     // isolates the right part and left part of the word excluding the part you want to get
     (word << (64 - width - lsb)) as i64 >> (64 - width)
 }
 /// Retrieve an unsigned value from `word`, represented by `width` bits
 /// beginning at least-significant bit `lsb`.
-///
 /// # Arguments:
 /// * `word`: An unsigned word
 /// * `width`: the width of a bit field
@@ -67,8 +62,6 @@ pub fn newu(word: u64, width: u64, lsb: u64, value: u64) -> Option<u64> {
 /// least-significant bit `lsb` now contain the signed `value`.
 /// Returns an `Option` which will be None iff the value does not fit
 /// in `width` signed bits.
-///
-/// # Arguments:
 /// * `word`: An unsigned word
 /// * `width`: the width of a bit field
 /// * `lsb`: the least-significant bit of the bit field

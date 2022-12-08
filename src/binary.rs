@@ -8,7 +8,6 @@ use crate::{memory, registers::execute_instruction};
 /// * `program_counter`: u32 that is the program counter for our UM
 /// * `instructions_vector`: Vector of u32s that represent all of the instructions in our program
 /// * `queue`: Vector of u32s that represents the queue we will use to aid us in making sure that we unmap and map our segments properly
-///     #[derive(Copy, Clone)]
 pub struct UM {
     pub memory: Vec<Vec<u32>>,
     pub registers: Vec<u32>,
@@ -18,7 +17,7 @@ pub struct UM {
 }
 
 impl UM {
-    /// Function that will create a new instance of our UM
+    /// Function that will create a new instance of our UM (returns a type UM)
     pub fn new() -> UM {
         let rum: UM = UM {
             memory: vec![vec![]],
@@ -44,8 +43,8 @@ impl UM {
         return self.instructions_vector[self.program_counter as usize];
     }
 
-    /// Boot function that will be called when the machine is started up before the program is ran; inititalizes the architecture 
-    /// of the machine.
+    /// Function that will run the machine with the instructions from the binary; will be in charge of ending the program
+    /// as well.
     /// * `self`: The instance of the universal machine struct
     pub fn run (&mut self) {
         // decode and execute are in the execute_instruction function
