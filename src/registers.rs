@@ -1,4 +1,4 @@
-use core::panic;
+use core::{panic, num};
 use std::process::{exit};
 use std::io;
 use crate::binary::{UM, load};
@@ -168,7 +168,7 @@ fn segmented_load(machine: &mut UM, register_a: u32, register_b: u32, register_c
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
 fn segmented_store(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
-    machine.memory[register_a as usize][register_b as usize] = register_c;
+    machine.memory[register_a as usize][register_b as usize] = machine.registers[register_c as usize];
     inc_program_counter(machine, 1);
 }
 
@@ -218,7 +218,7 @@ fn bit_nand(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32)
 
 /// Function that is called for OPCODE 7 (halt), terminating the program
 fn halt() {
-    exit(1);
+    exit(0);
 }
 
 /// Function that is called for OPCODE 8 (Map Segment), creating a new segment and putting that segment into
@@ -227,21 +227,19 @@ fn halt() {
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
 fn map_segment(machine: &mut UM, register_b: u32, register_c: u32) {
-    // ASK FOR HELP WITH THIS
-    let new_seg: Vec<u32> = vec![0; machine.registers[register_c as usize] as usize];
-    if register_c != 0 { // add other boolean check
-        machine.registers = new_seg
-    } else {
-        machine.memory[register_c as usize] = new_seg
-    }
+    // create a segment that has r[c] words in it
+    let num_words = machine.registers[register_c as usize];
+    let initialized_word: u32 = 0;
+    let new_seg_to_map = vec![initialized_word; num_words as usize];
+    
 }
 
-/// Function that is called for OPCODE 9 (Unmap Segment) that gets rid of a segment in our memory.
+/// Function that is called for OPCODE 9 (Unmap Segment) that gets rid of a segment in our memory. We push that ID
+/// into a queue, allowing us to reuse that memory if we every need to allocate more.
 /// * `machine`: the machine to operate on (of type UM)
 /// * `register_c`: u32 value that represents the value that is in register C
 fn unmap_segment(machine: &mut UM, register_c: u32) {
     machine.queue.push(register_c);
-
     // did this so that the indices would not change when we got rid of something
     machine.memory[register_c as usize] = [].to_vec();
     inc_program_counter(machine, 1);
@@ -255,7 +253,7 @@ fn output(machine: &mut UM, register_c: u32) {
     if machine.registers[register_c as usize] > 255 {
         panic!();
     } else {
-        println!("{}", machine.registers[register_c as usize]);
+        print!("{}", char::from_u32(machine.registers[register_c as usize]).unwrap());
     }
     inc_program_counter(machine, 1);
 }

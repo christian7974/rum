@@ -12,7 +12,6 @@ pub struct UM {
     pub memory: Vec<Vec<u32>>,
     pub registers: Vec<u32>,
     pub program_counter: u32,
-    pub instructions_vector: Vec<u32>,
     pub queue: Vec<u32>
 }
 
@@ -23,7 +22,6 @@ impl UM {
             memory: vec![vec![]],
             registers: vec![],
             program_counter: 0,
-            instructions_vector: vec![],
             queue: vec![]
         };
         return rum;
@@ -34,13 +32,12 @@ impl UM {
     /// * `self`: The instance of the universal machine struct
     pub fn boot(&mut self, instructions_from_binary: Vec<u32>) {
         self.registers = vec![0; 8];
-        self.instructions_vector = instructions_from_binary.clone();
         self.memory[0] = instructions_from_binary;
-        
+        self.program_counter = 0;
     }
 
     pub fn fetch(&mut self) -> u32 {
-        return self.instructions_vector[self.program_counter as usize];
+        return self.memory[0][self.program_counter as usize];
     }
 
     /// Function that will run the machine with the instructions from the binary; will be in charge of ending the program
