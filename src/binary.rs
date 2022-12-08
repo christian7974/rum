@@ -37,6 +37,9 @@ impl UM {
     }
 
     pub fn fetch(&mut self) -> u32 {
+    //     println!("the program counter is {} and the length is {}", 
+    //     self.program_counter,
+    // self.memory.len());
         return self.memory[0][self.program_counter as usize];
     }
 

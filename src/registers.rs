@@ -2,7 +2,7 @@ use core::{panic, num};
 use std::process::{exit};
 use std::io;
 use crate::binary::{UM, load};
-
+use crate::memory::map_memory_segment;
 type Umi = u32;
 pub struct Field {
     width: u32,
@@ -179,7 +179,9 @@ fn segmented_store(machine: &mut UM, register_a: u32, register_b: u32, register_
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
 fn addition(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
-    machine.registers[register_a as usize] = (machine.registers[register_b as usize] + machine.registers[register_c as usize]) % 2_u32.pow(32);
+    // cast b and c as 64s, add them, mod, then cast back to u32
+
+    machine.registers[register_a as usize] = ((machine.registers[register_b as usize] as u64 + machine.registers[register_c as usize] as u64) % 2_u64.pow(32)) as u32;
     inc_program_counter(machine, 1);
 }
 
@@ -190,7 +192,7 @@ fn addition(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32)
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
 fn multiplication(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
-    machine.registers[register_a as usize] = (machine.registers[register_b as usize] * machine.registers[register_c as usize]) % 2_u32.pow(32);
+    machine.registers[register_a as usize] = ((machine.registers[register_b as usize] as u64 * machine.registers[register_c as usize] as u64) % 2_u64.pow(32)) as u32;
     inc_program_counter(machine, 1);
 }
 
@@ -231,7 +233,9 @@ fn map_segment(machine: &mut UM, register_b: u32, register_c: u32) {
     let num_words = machine.registers[register_c as usize];
     let initialized_word: u32 = 0;
     let new_seg_to_map = vec![initialized_word; num_words as usize];
-    
+    let address = map_memory_segment(machine, new_seg_to_map);
+    machine.registers[register_b as usize] = address; 
+    inc_program_counter(machine, 1);
 }
 
 /// Function that is called for OPCODE 9 (Unmap Segment) that gets rid of a segment in our memory. We push that ID
@@ -241,7 +245,7 @@ fn map_segment(machine: &mut UM, register_b: u32, register_c: u32) {
 fn unmap_segment(machine: &mut UM, register_c: u32) {
     machine.queue.push(register_c);
     // did this so that the indices would not change when we got rid of something
-    machine.memory[register_c as usize] = [].to_vec();
+    machine.memory[machine.registers[register_c as usize] as usize] = [].to_vec();
     inc_program_counter(machine, 1);
 }
 
@@ -262,8 +266,31 @@ fn output(machine: &mut UM, register_c: u32) {
 /// * `machine`: the machine to operate on (of type UM)
 /// * `register_c`: u32 value that represents the value that is in register C
 fn input(machine: &mut UM, register_c: u32) {
-    // ASK FOR HELP WITH THIS
-    todo!()
+    // input bytes 
+    // read chars from stdin 
+    let mut buffer = String::new();
+    let string = std::io::stdin().read_line(&mut buffer).ok();
+    // println!("{:?}", string);
+    let bytes = buffer.bytes().nth(0); // output the number as a byte (ASCII value)
+    // println!("{:?}", bytes);
+    if bytes.is_some() {
+        machine.registers[register_c as usize] = bytes.unwrap() as u32;
+    } else if bytes.is_none() { // make all 1
+        machine.registers[register_c as usize] = u32::MAX;
+    }
+    inc_program_counter(machine, 1);
+    // machine.registers[register_c as usize] = bytes. as u32;
+
+
+    // rum meant to be able to interact w real world through stdin and stdout 
+    // read 1 char at a time through std in 
+    // stdin is a vec of bytes 
+    // input instructions reads bytes one at a time in order 
+    // 7 6 5 4 => r[c] := 7; r[c] := 6; ...; r[c] := 4;
+    // When end of input is reached, r[c] is loaded with full 32 bit word where every  bit is 1 
+    // Why not 1 char at a time? stdin is actually a buffer of u8s 
+    // buffer is temporary place where bytes representing input are stored
+
 }
 
 /// Function that is called for OPCODE 12 (Load Program) which takes an already existing memory segment, duplicating
@@ -272,7 +299,7 @@ fn input(machine: &mut UM, register_c: u32) {
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
 fn load_program(mut machine: &mut UM, register_b: u32, register_c: u32) { // DO NOT INC PROGRAM COUNTER HERE
-    let duplicated_seg: Vec<u32> = machine.memory[register_b as usize].clone();
+    let duplicated_seg: Vec<u32> = machine.memory[machine.registers[register_b as usize] as usize].clone();
     machine.memory[0] = duplicated_seg;
     machine.program_counter = machine.memory[0][machine.registers[register_c as usize] as usize];
 }
