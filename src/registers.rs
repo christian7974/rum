@@ -2,6 +2,7 @@ use core::{panic, num};
 use std::process::{exit};
 use std::io;
 use crate::binary::{UM, load};
+use crate::memory::map_memory_segment;
 
 type Umi = u32;
 pub struct Field {
@@ -231,7 +232,8 @@ fn map_segment(machine: &mut UM, register_b: u32, register_c: u32) {
     let num_words = machine.registers[register_c as usize];
     let initialized_word: u32 = 0;
     let new_seg_to_map = vec![initialized_word; num_words as usize];
-    
+    let address = map_memory_segment(machine, new_seg_to_map);
+    machine.registers[register_b as usize] = address; 
 }
 
 /// Function that is called for OPCODE 9 (Unmap Segment) that gets rid of a segment in our memory. We push that ID
@@ -262,7 +264,17 @@ fn output(machine: &mut UM, register_c: u32) {
 /// * `machine`: the machine to operate on (of type UM)
 /// * `register_c`: u32 value that represents the value that is in register C
 fn input(machine: &mut UM, register_c: u32) {
-    // ASK FOR HELP WITH THIS
+    // input bytes 
+    // read chars from stdin 
+    // rum meant to be able to interact w real world through stdin and stdout 
+    // read 1 char at a time through std in 
+    // stdin is a vec of bytes 
+    // input instructions reads bytes one at a time in order 
+    // 7 6 5 4 => r[c] := 7; r[c] := 6; ...; r[c] := 4;
+    // When end of input is reached, r[c] is loaded with full 32 bit word where every  bit is 1 
+    // Why not 1 char at a time? stdin is actually a buffer of u8s 
+    // buffer is temporary place where bytes representing input are stored 
+    
     todo!()
 }
 
