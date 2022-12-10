@@ -12,7 +12,7 @@ static RB: Field = Field {width: 3, lsb: 3};
 static RC: Field = Field {width: 3, lsb: 0};
 static RL: Field = Field {width: 3, lsb: 25};
 static VL: Field = Field {width: 25, lsb: 0};
-static OP: Field = Field {width: 4, lsb: 28};
+pub static OP: Field = Field {width: 4, lsb: 28};
 /// Helper function to extract the proper field from an instruction
 /// * `bits`: u32 which represents the amount to shift left by
 fn mask(bits: u32) -> u32 { 

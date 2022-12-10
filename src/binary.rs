@@ -1,6 +1,5 @@
 use std::{convert::TryInto, vec};
-use crate::{registers::execute_instruction};
-
+use crate::{registers::{execute_instruction, get, OP}};
 /// Our UM struct that has all of the architecture for our universal machine
 /// * `memory`: 2D vector of integers that holds a memory segment (a vector of u32s)
 /// * `registers`: Vector of u32s that represent the 8 registers in our UM
@@ -35,39 +34,43 @@ impl UM {
     }
 
     pub fn fetch(&mut self) -> u32 {
-        println!("memory length is {}", self.memory[0].len());
         return self.memory[0][self.program_counter as usize];
     }
 
     /// Function that will run the machine with the instructions from the binary; will be in charge of ending the program
     /// as well.
     /// * `self`: The instance of the universal machine struct
-    pub fn run (&mut self) {
+    pub fn run (&mut self, flag: Option<String>) {
         let mut num_inst = 1;
-        // decode and execute are in the execute_instruction function
-        // fetch instr, decode, execute
         loop {
-            // fetch is getting insturction
             let individual_instruction = self.fetch();
-            // println!("{}", self.program_counter);
-            println!("num instruction {}", num_inst);
-            // println!("{:b}", self.memory[0][self.program_counter as usize]);
             execute_instruction(self, individual_instruction);
-            println!("after fetch {:b}", individual_instruction);
-            // self.output_archs();
-            num_inst += 1;
+            if flag.clone() == Some(("-d").to_string()) {
+                self.output_archs(individual_instruction, num_inst);
+                num_inst += 1;
+            }
         }
     }
-
-    pub fn output_archs (&mut self) {
+    /// Helper function that prints out all of the architecture of our UM (the registers, what instruction we are holding, etc.); only called
+    /// when the flag "-d" is passed in the command line
+    /// * `self`: The instance of the universal machine struct
+    /// * `individual_instruction`: The individual instruction being passed into the uM
+    /// * `num_inst`: The numbered instruction in the binary we are on
+    pub fn output_archs (&mut self, individual_instruction: u32, num_inst: u32) {
+        println!("the current instruction is {} which is instruction {}", get(&OP, individual_instruction), num_inst);
         for i in 0..8 {
             println!("register {} is holding {}", i, self.registers[i]);
         }
+        println!();
+        for i in 0..self.memory.len() {
+            if self.memory[i] != [] {
+                println!("the memory segment {} is holding {:?}", i, self.memory[i]);
+            }
+        }
     }
 
-    
 }
-/// Load function that returns a vector of u32 integers representing the instructions from the binary that we read it
+/// Load function that returns a vector of u32 integers representing the instructions from the binary that we read
 /// * `input`: Option reference str that represents the name of the inputted binary file to run
 pub fn load(input: Option<&str>) -> Vec<u32> {
     let mut raw_reader: Box<dyn std::io::BufRead> = match input {
