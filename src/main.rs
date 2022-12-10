@@ -1,8 +1,9 @@
 use rum::binary;
 use rum::binary::UM;
 use std::env;
-use std::time::Instant;
-
+// TO ZIP: zip -r rum.zip rum -x "rum/Cargo.lock" -x "rum/target/**" -x "rum/.git/*"
+// DELETE THE OLD .ZIP BEFORE RUNNING THIS
+// TO RUN WITH TIME: \time ./target/debug/rum hello.um
 fn main() {
     let input = env::args().nth(1);
     let flag = env::args().nth(2);
@@ -17,12 +18,7 @@ fn main() {
             println!("{:b}", instructions[i]);
         }
     }
-    let start = Instant::now();
     let mut machine = UM::new();
     machine.boot(instructions.clone());
     machine.run();
-    if flag.clone() == Some(("-t").to_string()) {
-        eprintln!("it took {:2?}", start.elapsed());
-    }
-    println!("finished running");
 }

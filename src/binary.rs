@@ -1,12 +1,10 @@
 use std::{convert::TryInto, vec};
-
-use crate::{memory, registers::execute_instruction};
+use crate::{registers::execute_instruction};
 
 /// Our UM struct that has all of the architecture for our universal machine
 /// * `memory`: 2D vector of integers that holds a memory segment (a vector of u32s)
 /// * `registers`: Vector of u32s that represent the 8 registers in our UM
 /// * `program_counter`: u32 that is the program counter for our UM
-/// * `instructions_vector`: Vector of u32s that represent all of the instructions in our program
 /// * `queue`: Vector of u32s that represents the queue we will use to aid us in making sure that we unmap and map our segments properly
 pub struct UM {
     pub memory: Vec<Vec<u32>>,
@@ -37,6 +35,7 @@ impl UM {
     }
 
     pub fn fetch(&mut self) -> u32 {
+        // println!("{:b}", self.memory[0][self.program_counter as usize]);
         return self.memory[0][self.program_counter as usize];
     }
 
@@ -44,12 +43,25 @@ impl UM {
     /// as well.
     /// * `self`: The instance of the universal machine struct
     pub fn run (&mut self) {
+        //let mut num_inst = 1;
         // decode and execute are in the execute_instruction function
         // fetch instr, decode, execute
         loop {
             // fetch is getting insturction
             let individual_instruction = self.fetch();
+            
+            //println!("num instruction {}", num_inst);
+            // println!("{:b}", self.memory[0][self.program_counter as usize]);
             execute_instruction(self, individual_instruction);
+            //println!("{:b}", individual_instruction);
+            // self.output_archs();
+            //num_inst += 1;
+        }
+    }
+
+    pub fn output_archs (&mut self) {
+        for i in 0..8 {
+            println!("register {} is holding {}", i, self.registers[i]);
         }
     }
 
