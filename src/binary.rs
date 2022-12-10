@@ -35,7 +35,7 @@ impl UM {
     }
 
     pub fn fetch(&mut self) -> u32 {
-        // println!("{:b}", self.memory[0][self.program_counter as usize]);
+        println!("memory length is {}", self.memory[0].len());
         return self.memory[0][self.program_counter as usize];
     }
 
@@ -43,19 +43,19 @@ impl UM {
     /// as well.
     /// * `self`: The instance of the universal machine struct
     pub fn run (&mut self) {
-        //let mut num_inst = 1;
+        let mut num_inst = 1;
         // decode and execute are in the execute_instruction function
         // fetch instr, decode, execute
         loop {
             // fetch is getting insturction
             let individual_instruction = self.fetch();
-            
-            //println!("num instruction {}", num_inst);
+            // println!("{}", self.program_counter);
+            println!("num instruction {}", num_inst);
             // println!("{:b}", self.memory[0][self.program_counter as usize]);
             execute_instruction(self, individual_instruction);
-            //println!("{:b}", individual_instruction);
+            println!("after fetch {:b}", individual_instruction);
             // self.output_archs();
-            //num_inst += 1;
+            num_inst += 1;
         }
     }
 
