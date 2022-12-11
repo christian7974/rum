@@ -27,23 +27,33 @@ impl UM {
     /// Boot function that will be called when the machine is started up before the program is ran; inititalizes the architecture 
     /// of the machine.
     /// * `self`: The instance of the universal machine struct
+    /// * `instructions_from_binary`: The list of instructions from our binary as a vector of u32 integers that are loaded into
+    /// memory segment 0 of our UM
     pub fn boot(&mut self, instructions_from_binary: Vec<u32>) {
         self.registers = vec![0; 8];
         self.memory[0] = instructions_from_binary;
         self.program_counter = 0;
     }
 
-    pub fn fetch(&mut self) -> u32 {
+    /// Method that will fetch the instruction so that the machine can continue running (returning the instruction at memory segment 0
+    /// at the program counter) 
+    /// * `self`: The instance of the universal machine struct
+    /// * `flag`: Flag entered in command line (used for debugging purposes)
+    pub fn fetch(&mut self, flag: Option<String>) -> u32 {
+        if flag.clone() == Some(("-d").to_string()) {
+            println!("length of seg 0 is {} and the program counter is at {}", self.memory[0].len(), self.program_counter);
+        }
         return self.memory[0][self.program_counter as usize];
     }
 
     /// Function that will run the machine with the instructions from the binary; will be in charge of ending the program
     /// as well.
     /// * `self`: The instance of the universal machine struct
+    /// * `flag`: Flag entered in command line (used for debugging purposes)
     pub fn run (&mut self, flag: Option<String>) {
         let mut num_inst = 1;
         loop {
-            let individual_instruction = self.fetch();
+            let individual_instruction = self.fetch(flag.clone());
             execute_instruction(self, individual_instruction);
             if flag.clone() == Some(("-d").to_string()) {
                 self.output_archs(individual_instruction, num_inst);
@@ -51,6 +61,7 @@ impl UM {
             }
         }
     }
+
     /// Helper function that prints out all of the architecture of our UM (the registers, what instruction we are holding, etc.); only called
     /// when the flag "-d" is passed in the command line
     /// * `self`: The instance of the universal machine struct
@@ -68,7 +79,6 @@ impl UM {
             }
         }
     }
-
 }
 /// Load function that returns a vector of u32 integers representing the instructions from the binary that we read
 /// * `input`: Option reference str that represents the name of the inputted binary file to run
