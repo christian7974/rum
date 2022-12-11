@@ -13,6 +13,7 @@ static RC: Field = Field {width: 3, lsb: 0};
 static RL: Field = Field {width: 3, lsb: 25};
 static VL: Field = Field {width: 25, lsb: 0};
 pub static OP: Field = Field {width: 4, lsb: 28};
+
 /// Helper function to extract the proper field from an instruction
 /// * `bits`: u32 which represents the amount to shift left by
 fn mask(bits: u32) -> u32 { 
@@ -32,6 +33,7 @@ pub fn get(field: &Field, instruction: Umi) -> u32 {
 pub fn op(instruction: Umi) -> u32 {
     (instruction >> OP.lsb) & mask(OP.width)
 }
+
 enum Opcode {CMov, SegLoad, SegStore, ADD, MUL, DIV, BitNAND, HALT, MapSeg, UnmapSeg, Output, Input, LoadProgram, LoadValue}
 
 /// Function that will execute a singular instruction (will parse what the instruction says and call the appropriate function
@@ -129,6 +131,8 @@ pub fn execute_instruction(machine: &mut UM , inst: Umi) {
             panic!()
         },
 }}
+
+
 
 /// Helper function that increments the program counter of the machine
 /// * `machine`: the machine to operate on (of type UM)
@@ -273,8 +277,9 @@ fn input(machine: &mut UM, register_c: u32) {
 
     match num_bytes_read {
         Ok(1) => machine.registers[register_c as usize] = buff[0] as u32,
-                // println!("here {}", buff[0] as u32)},
+    
         Ok(0) => machine.registers[register_c as usize] = u32::MAX,
+
         _ => panic!(),
     }
     
