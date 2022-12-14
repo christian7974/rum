@@ -12,7 +12,8 @@ static RB: Field = Field {width: 3, lsb: 3};
 static RC: Field = Field {width: 3, lsb: 0};
 static RL: Field = Field {width: 3, lsb: 25};
 static VL: Field = Field {width: 25, lsb: 0};
-static OP: Field = Field {width: 4, lsb: 28};
+pub static OP: Field = Field {width: 4, lsb: 28};
+
 /// Helper function to extract the proper field from an instruction
 /// * `bits`: u32 which represents the amount to shift left by
 fn mask(bits: u32) -> u32 { 
@@ -32,6 +33,7 @@ pub fn get(field: &Field, instruction: Umi) -> u32 {
 pub fn op(instruction: Umi) -> u32 {
     (instruction >> OP.lsb) & mask(OP.width)
 }
+
 enum Opcode {CMov, SegLoad, SegStore, ADD, MUL, DIV, BitNAND, HALT, MapSeg, UnmapSeg, Output, Input, LoadProgram, LoadValue}
 
 /// Function that will execute a singular instruction (will parse what the instruction says and call the appropriate function
@@ -115,8 +117,8 @@ pub fn execute_instruction(machine: &mut UM , inst: Umi) {
 
         o if o == Opcode::LoadProgram as u32 => {
             load_program(machine, 
-                get(&RA, inst), 
-                get(&RB, inst))
+                get(&RB, inst), 
+                get(&RC, inst))
         },
 
         o if o == Opcode::LoadValue as u32 => {
@@ -129,6 +131,8 @@ pub fn execute_instruction(machine: &mut UM , inst: Umi) {
             panic!()
         },
 }}
+
+
 
 /// Helper function that increments the program counter of the machine
 /// * `machine`: the machine to operate on (of type UM)
@@ -143,7 +147,6 @@ fn inc_program_counter(machine: &mut UM, amount_to_increment: u32) {
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
 fn conditional_move(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
-    println!("cmove");
     if machine.registers[register_c as usize] != 0 {
         machine.registers[register_a as usize] = machine.registers[register_b as usize];
     }
@@ -213,7 +216,6 @@ fn division(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32)
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
 fn bit_nand(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
-    println!("nand");
     machine.registers[register_a as usize] = !(machine.registers[register_b as usize] & machine.registers[register_c as usize]);
     inc_program_counter(machine, 1);
 }
@@ -229,34 +231,18 @@ fn halt() {
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
 fn map_segment(machine: &mut UM, register_b: u32, register_c: u32) {
-    // let num_words = machine.registers[register_c as usize];
-    // let initialized_word: u32 = 0;
-    // let new_seg_to_map = vec![initialized_word; num_words as usize];
-    // let address = map_memory_segment(machine, new_seg_to_map);
-    // machine.registers[register_b as usize] = address; 
-    // bit pattern is identifier (index)
     let num_words = machine.registers[register_c as usize];
     let inititialized_word = 0;
     let new_seg_to_map = vec![inititialized_word; num_words as usize];
     if !machine.queue.is_empty() {
-        machine.memory[machine.queue[0] as usize] = new_seg_to_map;
-        machine.registers[register_b as usize] = machine.queue[0];
-        machine.queue.remove(0);
+        let index_num = machine.queue.pop().unwrap();
+        machine.memory[index_num as usize] = new_seg_to_map;
+        machine.registers[register_b as usize] = index_num;
     } else {
         machine.registers[register_b as usize] = machine.memory.len() as u32;
         machine.memory.push(new_seg_to_map);
     }
     inc_program_counter(machine, 1);
-    // machine.memory.len()
-    // value your setting to register c
-    // vector of 0s of ^
-    // check if stack is empty
-        // if not, get seg id from top of stack
-        // set reg b to ^ that register id
-
-    // else
-        // put new seg id (the length of the memory) into reg b
-        // push new seg into memory
 }
 
 /// Function that is called for OPCODE 9 (Unmap Segment) that gets rid of a segment in our memory. We push that ID
@@ -264,8 +250,8 @@ fn map_segment(machine: &mut UM, register_b: u32, register_c: u32) {
 /// * `machine`: the machine to operate on (of type UM)
 /// * `register_c`: u32 value that represents the value that is in register C
 fn unmap_segment(machine: &mut UM, register_c: u32) {
-    machine.queue.push(register_c);
-    //machine.memory[machine.registers[register_c as usize] as usize] = [].to_vec();
+    machine.queue.push(machine.registers[register_c as usize]);
+    machine.memory[machine.registers[register_c as usize] as usize].clear();
     inc_program_counter(machine, 1);
 }
 
@@ -274,8 +260,6 @@ fn unmap_segment(machine: &mut UM, register_c: u32) {
 /// * `machine`: the machine to operate on (of type UM)
 /// * `register_c`: u32 value that represents the value that is in register C
 fn output(machine: &mut UM, register_c: u32) {
-    println!("output");
-    //println!("tryna output {}", machine.registers[register_c as usize]);
     if machine.registers[register_c as usize] > 255 {
         panic!();
     } else {
@@ -288,14 +272,14 @@ fn output(machine: &mut UM, register_c: u32) {
 /// * `machine`: the machine to operate on (of type UM)
 /// * `register_c`: u32 value that represents the value that is in register C
 fn input(machine: &mut UM, register_c: u32) {
-    println!("input");
     let mut buff:[u8; 1] = [0];
     let num_bytes_read = std::io::stdin().read(&mut buff); // update the contents of buffer from stdin, returns the number of bytes read
 
     match num_bytes_read {
         Ok(1) => machine.registers[register_c as usize] = buff[0] as u32,
-                // println!("here {}", buff[0] as u32)},
+    
         Ok(0) => machine.registers[register_c as usize] = u32::MAX,
+
         _ => panic!(),
     }
     
@@ -309,10 +293,7 @@ fn input(machine: &mut UM, register_c: u32) {
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
 fn load_program(mut machine: &mut UM, register_b: u32, register_c: u32) { // DO NOT INC PROGRAM COUNTER HERE
-    println!("load program");
-    // CULPRIT, if reg b is zero, then jump
     let dup_seg:Vec<u32> = machine.memory[machine.registers[register_b as usize] as usize].clone();
-    // program counter is whatever is in register 
     machine.memory[0] = dup_seg;
     machine.program_counter = machine.registers[register_c as usize];
 }
@@ -324,7 +305,6 @@ fn load_program(mut machine: &mut UM, register_b: u32, register_c: u32) { // DO 
 /// as the other instructions)
 /// * `val_to_load`: u32 value that represents the value to load into `register_a_prime`
 fn load_value(machine: &mut UM, register_a_prime: u32, val_to_load: u32) {
-    println!("load value {}", val_to_load);
     machine.registers[register_a_prime as usize] = val_to_load;
     inc_program_counter(machine, 1);
 }
