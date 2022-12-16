@@ -1,5 +1,6 @@
 use std::{convert::TryInto, vec};
 use crate::{operations::{execute_instruction, get, OP}};
+
 /// Our UM struct that has all of the architecture for our universal machine
 /// * `memory`: 2D vector of integers that holds a memory segment (a vector of u32s)
 /// * `registers`: Vector of u32s that represent the 8 registers in our UM
@@ -60,6 +61,7 @@ impl UM {
                 num_inst += 1;
             }
         }
+        
     }
 
     /// Helper function that prints out all of the architecture of our UM (the registers, what instruction we are holding, etc.); only called

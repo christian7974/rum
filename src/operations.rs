@@ -274,12 +274,9 @@ fn output(machine: &mut UM, register_c: u32) {
 fn input(machine: &mut UM, register_c: u32) {
     let mut buff:[u8; 1] = [0];
     let num_bytes_read = std::io::stdin().read(&mut buff); // update the contents of buffer from stdin, returns the number of bytes read
-
     match num_bytes_read {
         Ok(1) => machine.registers[register_c as usize] = buff[0] as u32,
-    
         Ok(0) => machine.registers[register_c as usize] = u32::MAX,
-
         _ => panic!(),
     }
     
