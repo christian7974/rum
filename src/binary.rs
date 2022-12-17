@@ -59,6 +59,9 @@ impl UM {
         loop {
             let individual_instruction = self.fetch(flag.clone());
             execute_instruction(self, individual_instruction);
+            if get(&OP, individual_instruction) != 12 {
+                self.program_counter += 1;
+            }
             if flag.clone() == Some(("-d").to_string()) {
                 self.output_archs(individual_instruction, num_inst);
                 num_inst += 1;
