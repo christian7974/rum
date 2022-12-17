@@ -8,17 +8,18 @@ use crate::{operations::{execute_instruction, get, OP}};
 /// * `queue`: Vector of u32s that represents the queue we will use to aid us in making sure that we unmap and map our segments properly
 pub struct UM {
     pub memory: Vec<Vec<u32>>,
-    pub registers: Vec<u32>,
+    pub registers: [u32; 8],
     pub program_counter: u32,
     pub queue: Vec<u32>
 }
 
 impl UM {
     /// Function that will create a new instance of our UM (returns a type UM)
+    #[inline(always)]
     pub fn new() -> UM {
         let rum: UM = UM {
             memory: vec![vec![]],
-            registers: vec![],
+            registers: [0; 8],
             program_counter: 0,
             queue: vec![]
         };
@@ -31,7 +32,7 @@ impl UM {
     /// * `instructions_from_binary`: The list of instructions from our binary as a vector of u32 integers that are loaded into
     /// memory segment 0 of our UM
     pub fn boot(&mut self, instructions_from_binary: Vec<u32>) {
-        self.registers = vec![0; 8];
+        self.registers = [0; 8];
         self.memory[0] = instructions_from_binary;
         self.program_counter = 0;
     }
@@ -40,6 +41,7 @@ impl UM {
     /// at the program counter) 
     /// * `self`: The instance of the universal machine struct
     /// * `flag`: Flag entered in command line (used for debugging purposes)
+    #[inline(always)]
     pub fn fetch(&mut self, flag: Option<String>) -> u32 {
         if flag.clone() == Some(("-d").to_string()) {
             println!("length of seg 0 is {} and the program counter is at {}", self.memory[0].len(), self.program_counter);
@@ -51,6 +53,7 @@ impl UM {
     /// as well.
     /// * `self`: The instance of the universal machine struct
     /// * `flag`: Flag entered in command line (used for debugging purposes)
+    #[inline(always)]
     pub fn run (&mut self, flag: Option<String>) {
         let mut num_inst = 1;
         loop {
