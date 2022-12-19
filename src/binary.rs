@@ -8,7 +8,7 @@ use crate::{operations::{execute_instruction, get, OP}};
 /// * `queue`: Vector of u32s that represents the queue we will use to aid us in making sure that we unmap and map our segments properly
 pub struct UM {
     pub memory: Vec<Vec<u32>>,
-    pub registers: [u32; 8],
+    pub registers: Vec<u32>,
     pub program_counter: u32,
     pub queue: Vec<u32>
 }
@@ -19,7 +19,7 @@ impl UM {
     pub fn new() -> UM {
         let rum: UM = UM {
             memory: vec![vec![]],
-            registers: [0; 8],
+            registers: vec![],
             program_counter: 0,
             queue: vec![]
         };
@@ -31,7 +31,7 @@ impl UM {
     /// * `self`: The instance of the universal machine struct
     /// * `instructions_from_binary`: The list of instructions from our binary as a vector of u32 integers that are loaded into
     pub fn boot(&mut self, instructions_from_binary: Vec<u32>) {
-        self.registers = [0; 8];
+        self.registers = vec![0; 8];
         self.memory[0] = instructions_from_binary;
         self.program_counter = 0;
     }
@@ -56,7 +56,8 @@ impl UM {
     pub fn run (&mut self, flag: Option<String>) {
         let mut num_inst = 1;
         loop {
-            let individual_instruction = self.fetch(flag.clone());
+            // self.fetch(flag.clone())
+            let individual_instruction = self.memory[0][self.program_counter as usize];
             execute_instruction(self, individual_instruction);
             if get(&OP, individual_instruction) != 12 {
                 self.program_counter += 1;
