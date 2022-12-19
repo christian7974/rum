@@ -17,6 +17,6 @@ fn main() {
     }
     let instructions = binary::load(input.as_deref());
     let mut machine = UM::new();
-    machine.boot(instructions);
+    machine.boot(instructions.as_slice());
     machine.run(flag.clone());
 }

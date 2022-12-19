@@ -1,5 +1,5 @@
 use std::{convert::TryInto, vec};
-use crate::{operations::{execute_instruction, get, OP}};
+use crate::operations;
 
 /// Our UM struct that has all of the architecture for our universal machine
 /// * `memory`: 2D vector of integers that holds a memory segment (a vector of u32s)
@@ -30,9 +30,9 @@ impl UM {
     /// of the machine.
     /// * `self`: The instance of the universal machine struct
     /// * `instructions_from_binary`: The list of instructions from our binary as a vector of u32 integers that are loaded into
-    pub fn boot(&mut self, instructions_from_binary: Vec<u32>) {
+    pub fn boot(&mut self, instructions_from_binary: &[u32]) {
         self.registers = vec![0; 8];
-        self.memory[0] = instructions_from_binary;
+        self.memory[0] = instructions_from_binary.to_vec();
         self.program_counter = 0;
     }
 
@@ -54,11 +54,135 @@ impl UM {
     /// * `flag`: Flag entered in command line (used for debugging purposes)
     #[inline(always)]
     pub fn run (&mut self, flag: Option<String>) {
+        type Umi = u32;
+        pub struct Field {
+            width: u32,
+            lsb: u32,
+        }
+        static RA: Field = Field {width: 3, lsb: 6};
+        static RB: Field = Field {width: 3, lsb: 3};
+        static RC: Field = Field {width: 3, lsb: 0};
+        static RL: Field = Field {width: 3, lsb: 25};
+        static VL: Field = Field {width: 25, lsb: 0};
+        pub static OP: Field = Field {width: 4, lsb: 28};
+        
+        /// Helper function to extract the proper field from an instruction
+        /// * `bits`: u32 which represents the amount to shift left by
+        fn mask(bits: u32) -> u32 { 
+            (1 << bits) - 1 
+        }
+        
+        /// Helper function that can extract something from an instruction
+        /// * `field`: a reference to a type field which represents the information that you want to extract from an instruction
+        /// * `instruction`: a type Umi (Universal machine instruction) which represents the instruction that you want to extract from
+        pub fn get(field: &Field, instruction: Umi) -> u32 {
+            (instruction >> field.lsb) & mask(field.width)
+        }
+        
+        /// Helper function that can extract something from an instruction
+        /// * `field`: a reference to a type field which represents the information that you want to extract from an instruction
+        /// * `instruction`: a type Umi (Universal machine instruction) which represents the instruction that you want to extract from
+        pub fn op(instruction: Umi) -> u32 {
+            (instruction >> OP.lsb) & mask(OP.width)
+        }
+        
+        enum Opcode {CMov, SegLoad, SegStore, ADD, MUL, DIV, BitNAND, HALT, MapSeg, UnmapSeg, Output, Input, LoadProgram, LoadValue}
+
+
         let mut num_inst = 1;
         loop {
             // self.fetch(flag.clone())
             let individual_instruction = self.memory[0][self.program_counter as usize];
-            execute_instruction(self, individual_instruction);
+            match get(&OP, individual_instruction) {
+                o if o == Opcode::CMov as u32 => {
+                    operations::conditional_move(self, 
+                        get(&RA, individual_instruction), 
+                        get(&RB, individual_instruction), 
+                        get(&RC, individual_instruction))
+                },
+                o if o == Opcode::SegLoad as u32 => {
+                    operations::segmented_load(self, 
+                        get(&RA, individual_instruction), 
+                        get(&RB, individual_instruction), 
+                        get(&RC, individual_instruction))
+                    },
+        
+                o if o == Opcode::SegStore as u32 => {
+                    operations::segmented_store(self, 
+                        get(&RA, individual_instruction), 
+                        get(&RB, individual_instruction), 
+                        get(&RC, individual_instruction))
+                   },
+        
+                o if o == Opcode::ADD as u32 => {
+                    operations::addition(self, 
+                        get(&RA, individual_instruction), 
+                        get(&RB, individual_instruction), 
+                        get(&RC, individual_instruction))
+                    },
+        
+                o if o == Opcode::MUL as u32 => {
+                    operations::multiplication(self, 
+                        get(&RA, individual_instruction), 
+                        get(&RB, individual_instruction), 
+                        get(&RC, individual_instruction))
+                    },
+        
+                o if o == Opcode::DIV as u32 => {
+                    operations::division(self, 
+                        get(&RA, individual_instruction), 
+                        get(&RB, individual_instruction), 
+                        get(&RC, individual_instruction))
+                   },
+                    
+                o if o == Opcode::BitNAND as u32 => {
+                    operations::bit_nand(self, 
+                        get(&RA, individual_instruction), 
+                        get(&RB, individual_instruction), 
+                        get(&RC, individual_instruction))
+                   },
+        
+                o if o == Opcode::HALT as u32 => {
+                    operations::halt()
+                   },
+        
+                o if o == Opcode::MapSeg as u32 => {
+                    operations::map_segment(self, 
+                        get(&RB, individual_instruction),
+                        get(&RC, individual_instruction))
+                    },
+        
+                o if o == Opcode::UnmapSeg as u32 => {
+                    operations::unmap_segment(self, 
+                        get(&RC, individual_instruction))
+                },
+        
+                o if o == Opcode::Output as u32 => {
+                    operations::output(self, 
+                        get(&RC, individual_instruction))
+                },
+                   
+                o if o == Opcode::Input as u32 => {
+                    operations::input(self,
+                        get(&RC, individual_instruction))
+                },
+        
+                o if o == Opcode::LoadProgram as u32 => {
+                    operations::load_program(self, 
+                        get(&RB, individual_instruction), 
+                        get(&RC, individual_instruction))
+                },
+        
+                o if o == Opcode::LoadValue as u32 => {
+                    operations::load_value(self, 
+                        get(&RL, individual_instruction),
+                    get(&VL, individual_instruction))
+                },
+        
+                _ => {
+                    panic!()
+                },
+            }
             if get(&OP, individual_instruction) != 12 {
                 self.program_counter += 1;
             }
@@ -76,7 +200,7 @@ impl UM {
     /// * `individual_instruction`: The individual instruction being passed into the uM
     /// * `num_inst`: The numbered instruction in the binary we are on
     pub fn output_archs (&mut self, individual_instruction: u32, num_inst: u32) {
-        println!("the current instruction is {} which is instruction {}", get(&OP, individual_instruction), num_inst);
+        println!("the current instruction is which is instruction {}", num_inst);
         for i in 0..8 {
             println!("register {} is holding {}", i, self.registers[i]);
         }

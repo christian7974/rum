@@ -143,7 +143,7 @@ pub fn execute_instruction(machine: &mut UM , inst: Umi) {
 /// * `register_a`: u32 value that represents the value that is in register A
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
-fn conditional_move(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
+pub fn conditional_move(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
     if machine.registers[register_c as usize] != 0 {
         machine.registers[register_a as usize] = machine.registers[register_b as usize];
     }
@@ -155,7 +155,7 @@ fn conditional_move(machine: &mut UM, register_a: u32, register_b: u32, register
 /// * `register_a`: u32 value that represents the value that is in register A
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
-fn segmented_load(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
+pub fn segmented_load(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
     machine.registers[register_a as usize] = machine.memory[machine.registers[register_b as usize] as usize][machine.registers[register_c as usize] as usize];
 }
 
@@ -164,7 +164,7 @@ fn segmented_load(machine: &mut UM, register_a: u32, register_b: u32, register_c
 /// * `register_a`: u32 value that represents the value that is in register A
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
-fn segmented_store(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
+pub fn segmented_store(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
     machine.memory[machine.registers[register_a as usize] as usize][machine.registers[register_b as usize] as usize] = machine.registers[register_c as usize];
 }
 
@@ -174,7 +174,7 @@ fn segmented_store(machine: &mut UM, register_a: u32, register_b: u32, register_
 /// * `register_a`: u32 value that represents the value that is in register A
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
-fn addition(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
+pub fn addition(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
     machine.registers[register_a as usize] = ((machine.registers[register_b as usize] as u64 + machine.registers[register_c as usize] as u64) % 2_u64.pow(32)) as u32;
 }
 
@@ -184,7 +184,7 @@ fn addition(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32)
 /// * `register_a`: u32 value that represents the value that is in register A
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
-fn multiplication(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
+pub fn multiplication(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
     machine.registers[register_a as usize] = ((machine.registers[register_b as usize] as u64 * machine.registers[register_c as usize] as u64) % 2_u64.pow(32)) as u32;
 }
 
@@ -194,7 +194,7 @@ fn multiplication(machine: &mut UM, register_a: u32, register_b: u32, register_c
 /// * `register_a`: u32 value that represents the value that is in register A
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
-fn division(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
+pub fn division(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
     if machine.registers[register_c as usize] == 0 {
         panic!();
     }
@@ -207,12 +207,12 @@ fn division(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32)
 /// * `register_a`: u32 value that represents the value that is in register A
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
-fn bit_nand(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
+pub fn bit_nand(machine: &mut UM, register_a: u32, register_b: u32, register_c: u32) {
     machine.registers[register_a as usize] = !(machine.registers[register_b as usize] & machine.registers[register_c as usize]);
 }
 
 /// Function that is called for OPCODE 7 (halt), terminating the program
-fn halt() {
+pub fn halt() {
     exit(0);
 }
 
@@ -221,7 +221,7 @@ fn halt() {
 /// * `machine`: the machine to operate on (of type UM)
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
-fn map_segment(machine: &mut UM, register_b: u32, register_c: u32) {
+pub fn map_segment(machine: &mut UM, register_b: u32, register_c: u32) {
     let num_words = machine.registers[register_c as usize];
     let inititialized_word = 0;
     let new_seg_to_map = vec![inititialized_word; num_words as usize];
@@ -239,7 +239,7 @@ fn map_segment(machine: &mut UM, register_b: u32, register_c: u32) {
 /// into a queue, allowing us to reuse that memory if we every need to allocate more.
 /// * `machine`: the machine to operate on (of type UM)
 /// * `register_c`: u32 value that represents the value that is in register C
-fn unmap_segment(machine: &mut UM, register_c: u32) {
+pub fn unmap_segment(machine: &mut UM, register_c: u32) {
     machine.queue.push(machine.registers[register_c as usize]);
     machine.memory[machine.registers[register_c as usize] as usize].clear();
 }
@@ -248,7 +248,7 @@ fn unmap_segment(machine: &mut UM, register_c: u32) {
 /// 0 and less than 255.
 /// * `machine`: the machine to operate on (of type UM)
 /// * `register_c`: u32 value that represents the value that is in register C
-fn output(machine: &mut UM, register_c: u32) {
+pub fn output(machine: &mut UM, register_c: u32) {
     if machine.registers[register_c as usize] > 255 {
         panic!();
     } else {
@@ -259,7 +259,7 @@ fn output(machine: &mut UM, register_c: u32) {
 /// Function that is called for OPCODE 11 (Input) that inputs a value into register C.
 /// * `machine`: the machine to operate on (of type UM)
 /// * `register_c`: u32 value that represents the value that is in register C
-fn input(machine: &mut UM, register_c: u32) {
+pub fn input(machine: &mut UM, register_c: u32) {
     let mut buff:[u8; 1] = [0];
     let num_bytes_read = std::io::stdin().read(&mut buff); // update the contents of buffer from stdin, returns the number of bytes read
     match num_bytes_read {
@@ -274,7 +274,7 @@ fn input(machine: &mut UM, register_c: u32) {
 /// * `machine`: the machine to operate on (of type UM)
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
-fn load_program(mut machine: &mut UM, register_b: u32, register_c: u32) { // DO NOT INC PROGRAM COUNTER HERE
+pub fn load_program(mut machine: &mut UM, register_b: u32, register_c: u32) { // DO NOT INC PROGRAM COUNTER HERE
     if machine.registers[register_b as usize] != 0 {
         machine.memory[0] = machine.memory[machine.registers[register_b as usize] as usize].clone();
 
@@ -288,6 +288,6 @@ fn load_program(mut machine: &mut UM, register_b: u32, register_c: u32) { // DO 
 /// * `register_a_prime`: u32 value that represents the value that is in register A (but not the same register A 
 /// as the other instructions)
 /// * `val_to_load`: u32 value that represents the value to load into `register_a_prime`
-fn load_value(machine: &mut UM, register_a_prime: u32, val_to_load: u32) {
+pub fn load_value(machine: &mut UM, register_a_prime: u32, val_to_load: u32) {
     machine.registers[register_a_prime as usize] = val_to_load;
 }
