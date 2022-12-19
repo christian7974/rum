@@ -275,9 +275,11 @@ fn input(machine: &mut UM, register_c: u32) {
 /// * `register_b`: u32 value that represents the value that is in register B
 /// * `register_c`: u32 value that represents the value that is in register C
 fn load_program(mut machine: &mut UM, register_b: u32, register_c: u32) { // DO NOT INC PROGRAM COUNTER HERE
-    let dup_seg:Vec<u32> = machine.memory[machine.registers[register_b as usize] as usize].clone();
-    machine.memory[0] = dup_seg;
-    machine.program_counter = machine.registers[register_c as usize];
+    if machine.registers[register_b as usize] != 0 {
+        machine.memory[0] = machine.memory[machine.registers[register_b as usize] as usize].clone();
+
+    } 
+    machine.program_counter = machine.registers[register_c as usize];   
 }
 
 /// Function that is called for OPCODE 13 (Load Value) that loads a number into register A (the 3 bits after the

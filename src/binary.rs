@@ -30,7 +30,6 @@ impl UM {
     /// of the machine.
     /// * `self`: The instance of the universal machine struct
     /// * `instructions_from_binary`: The list of instructions from our binary as a vector of u32 integers that are loaded into
-    /// memory segment 0 of our UM
     pub fn boot(&mut self, instructions_from_binary: Vec<u32>) {
         self.registers = [0; 8];
         self.memory[0] = instructions_from_binary;
