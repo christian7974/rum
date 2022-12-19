@@ -11,12 +11,8 @@ use std::env;
     // that section and see if it should be taking that long.
 fn main() {
     let input = env::args().nth(1);
-    let flag = env::args().nth(2);
-    if flag != None{
-        flag.clone().unwrap();
-    }
     let instructions = binary::load(input.as_deref());
     let mut machine = UM::new();
     machine.boot(instructions.as_slice());
-    machine.run(flag.clone());
+    machine.run();
 }

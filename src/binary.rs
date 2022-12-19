@@ -41,10 +41,7 @@ impl UM {
     /// * `self`: The instance of the universal machine struct
     /// * `flag`: Flag entered in command line (used for debugging purposes)
     #[inline(always)]
-    pub fn fetch(&mut self, flag: Option<String>) -> u32 {
-        if flag.clone() == Some(("-d").to_string()) {
-            println!("length of seg 0 is {} and the program counter is at {}", self.memory[0].len(), self.program_counter);
-        }
+    pub fn fetch(&mut self) -> u32 {
         return self.memory[0][self.program_counter as usize];
     }
 
@@ -53,7 +50,7 @@ impl UM {
     /// * `self`: The instance of the universal machine struct
     /// * `flag`: Flag entered in command line (used for debugging purposes)
     #[inline(always)]
-    pub fn run (&mut self, flag: Option<String>) {
+    pub fn run (&mut self) {
         type Umi = u32;
         pub struct Field {
             width: u32,
@@ -88,8 +85,6 @@ impl UM {
         
         enum Opcode {CMov, SegLoad, SegStore, ADD, MUL, DIV, BitNAND, HALT, MapSeg, UnmapSeg, Output, Input, LoadProgram, LoadValue}
 
-
-        let mut num_inst = 1;
         loop {
             // self.fetch(flag.clone())
             let individual_instruction = self.memory[0][self.program_counter as usize];
@@ -186,32 +181,11 @@ impl UM {
             if get(&OP, individual_instruction) != 12 {
                 self.program_counter += 1;
             }
-            if flag.clone() == Some(("-d").to_string()) {
-                self.output_archs(individual_instruction, num_inst);
-                num_inst += 1;
             }
         }
         
     }
-
-    /// Helper function that prints out all of the architecture of our UM (the registers, what instruction we are holding, etc.); only called
-    /// when the flag "-d" is passed in the command line
-    /// * `self`: The instance of the universal machine struct
-    /// * `individual_instruction`: The individual instruction being passed into the uM
-    /// * `num_inst`: The numbered instruction in the binary we are on
-    pub fn output_archs (&mut self, individual_instruction: u32, num_inst: u32) {
-        println!("the current instruction is which is instruction {}", num_inst);
-        for i in 0..8 {
-            println!("register {} is holding {}", i, self.registers[i]);
-        }
-        println!();
-        for i in 0..self.memory.len() {
-            if self.memory[i] != [] {
-                println!("the memory segment {} is holding {:?}", i, self.memory[i]);
-            }
-        }
-    }
-}
+    
 /// Load function that returns a vector of u32 integers representing the instructions from the binary that we read
 /// * `input`: Option reference str that represents the name of the inputted binary file to run
 pub fn load(input: Option<&str>) -> Vec<u32> {
