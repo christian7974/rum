@@ -1,7 +1,6 @@
 use std::{convert::TryInto, vec};
 use crate::operations;
-use std::io::Read;
-use std::process::{exit};
+
 /// Our UM struct that has all of the architecture for our universal machine
 /// * `memory`: 2D vector of integers that holds a memory segment (a vector of u32s)
 /// * `registers`: Vector of u32s that represent the 8 registers in our UM
@@ -89,110 +88,90 @@ impl UM {
         loop {
             // self.fetch(flag.clone())
             let individual_instruction = self.memory[0][self.program_counter as usize];
-            let reg_a_val = self.registers[get(&RA, individual_instruction) as usize];
-            let reg_b_val = self.registers[get(&RB, individual_instruction) as usize];
-            let reg_c_val = self.registers[get(&RC, individual_instruction) as usize];
-            let reg_a_prime = self.registers[get(&RL, individual_instruction) as usize];
-            let val = self.registers[get(&VL, individual_instruction) as usize];
             match get(&OP, individual_instruction) {
                 o if o == Opcode::CMov as u32 => {
                     operations::conditional_move(self, 
-                        reg_a_val, 
-                        reg_b_val, 
-                        reg_c_val)
+                        get(&RA, individual_instruction), 
+                        get(&RB, individual_instruction), 
+                        get(&RC, individual_instruction))
                 },
                 o if o == Opcode::SegLoad as u32 => {
                     operations::segmented_load(self, 
-                        reg_a_val, 
-                        reg_b_val, 
-                        reg_c_val)
+                        get(&RA, individual_instruction), 
+                        get(&RB, individual_instruction), 
+                        get(&RC, individual_instruction))
                     },
         
                 o if o == Opcode::SegStore as u32 => {
                     operations::segmented_store(self, 
-                        reg_a_val, 
-                        reg_b_val, 
-                        reg_c_val)
+                        get(&RA, individual_instruction), 
+                        get(&RB, individual_instruction), 
+                        get(&RC, individual_instruction))
                    },
         
                 o if o == Opcode::ADD as u32 => {
                     operations::addition(self, 
-                        reg_a_val, 
-                        reg_b_val, 
-                        reg_c_val)
+                        get(&RA, individual_instruction), 
+                        get(&RB, individual_instruction), 
+                        get(&RC, individual_instruction))
                     },
         
                 o if o == Opcode::MUL as u32 => {
                     operations::multiplication(self, 
-                        reg_a_val, 
-                        reg_b_val, 
-                        reg_c_val)
+                        get(&RA, individual_instruction), 
+                        get(&RB, individual_instruction), 
+                        get(&RC, individual_instruction))
                     },
         
                 o if o == Opcode::DIV as u32 => {
-                    if reg_c_val == 0 {
-                        panic!();
-                    }
-                    reg_a_val = reg_b_val / machine.registers[register_c as usize];
+                    operations::division(self, 
+                        get(&RA, individual_instruction), 
+                        get(&RB, individual_instruction), 
+                        get(&RC, individual_instruction))
                    },
                     
                 o if o == Opcode::BitNAND as u32 => {
-                    reg_a_val = !(reg_b_val & reg_c_val);
+                    operations::bit_nand(self, 
+                        get(&RA, individual_instruction), 
+                        get(&RB, individual_instruction), 
+                        get(&RC, individual_instruction))
                    },
         
                 o if o == Opcode::HALT as u32 => {
-                    exit(0);
+                    operations::halt()
                    },
         
                 o if o == Opcode::MapSeg as u32 => {
-                    let num_words = reg_c_val;
-                    let inititialized_word = 0;
-                    let new_seg_to_map = vec![inititialized_word; num_words as usize];
-                    if !self.queue.is_empty() {
-                        let index_num = self.queue.pop().unwrap();
-                        self.memory[index_num as usize] = new_seg_to_map;
-                        reg_b_val = index_num;
-                    } else {
-                        reg_b_val = self.memory.len() as u32;
-                        self.memory.push(new_seg_to_map);
-                    }
-                    // return reg_b_val;
+                    operations::map_segment(self, 
+                        get(&RB, individual_instruction),
+                        get(&RC, individual_instruction))
                     },
         
                 o if o == Opcode::UnmapSeg as u32 => {
-                    self.queue.push(reg_c_val);
-                    self.memory[reg_c_val as usize] = [].to_vec(); 
-                    },
+                    operations::unmap_segment(self, 
+                        get(&RC, individual_instruction))
+                },
         
                 o if o == Opcode::Output as u32 => {
-                    if reg_c_val > 255 {
-                        panic!();
-                    } else {
-                        print!("{}", char::from_u32(reg_c_val).unwrap());
-                    }
-                    },
+                    operations::output(self, 
+                        get(&RC, individual_instruction))
+                },
                    
                 o if o == Opcode::Input as u32 => {
-                    let mut buff:[u8; 1] = [0];
-                    let num_bytes_read = std::io::stdin().read(&mut buff); // update the contents of buffer from stdin, returns the number of bytes read
-                    match num_bytes_read {
-                        Ok(1) => reg_c_val = buff[0] as u32,
-                        Ok(0) => reg_c_val = u32::MAX,
-                        _ => panic!(),
-                    }
+                    operations::input(self,
+                        get(&RC, individual_instruction))
                 },
         
                 o if o == Opcode::LoadProgram as u32 => {
-                    if reg_b_val != 0 {
-                        self.memory[0] = self.memory[reg_b_val as usize].clone();
-                
-                    } 
-                    self.program_counter = reg_c_val;  
+                    operations::load_program(self, 
+                        get(&RB, individual_instruction), 
+                        get(&RC, individual_instruction))
                 },
         
                 o if o == Opcode::LoadValue as u32 => {
-                    self.registers[reg_a_prime as usize] = val;
-                    self.registers[reg_a_prime as usize];
+                    operations::load_value(self, 
+                        get(&RL, individual_instruction),
+                    get(&VL, individual_instruction))
                 },
         
                 _ => {
