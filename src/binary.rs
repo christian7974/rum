@@ -89,55 +89,45 @@ impl UM {
         loop {
             // self.fetch(flag.clone())
             let individual_instruction = self.memory[0][self.program_counter as usize];
-            let reg_a_val = self.registers[get(&RA, individual_instruction) as usize];
-            let reg_b_val = self.registers[get(&RB, individual_instruction) as usize];
-            let reg_c_val = self.registers[get(&RC, individual_instruction) as usize];
-            let reg_a_prime = self.registers[get(&RL, individual_instruction) as usize];
-            let val = self.registers[get(&VL, individual_instruction) as usize];
+            //println!("{}", get(&OP, individual_instruction));
+            let reg_a = get(&RA, individual_instruction) as usize;
+            let reg_b = get(&RB, individual_instruction) as usize;
+            let reg_c = get(&RC, individual_instruction) as usize;            
+            let reg_a_val = self.registers[reg_a];
+            let reg_b_val = self.registers[reg_b];
+            let reg_c_val = self.registers[reg_c];
+
             match get(&OP, individual_instruction) {
                 o if o == Opcode::CMov as u32 => {
-                    operations::conditional_move(self, 
-                        reg_a_val, 
-                        reg_b_val, 
-                        reg_c_val)
+                    if reg_c_val != 0 {
+                        self.registers[reg_a] = reg_b_val;
+                    }
                 },
                 o if o == Opcode::SegLoad as u32 => {
-                    operations::segmented_load(self, 
-                        reg_a_val, 
-                        reg_b_val, 
-                        reg_c_val)
+                    self.registers[reg_a as usize] = self.memory[reg_b_val as usize][reg_c_val as usize];
                     },
         
                 o if o == Opcode::SegStore as u32 => {
-                    operations::segmented_store(self, 
-                        reg_a_val, 
-                        reg_b_val, 
-                        reg_c_val)
+                    self.memory[reg_a_val as usize][reg_b_val as usize] = reg_c_val;
                    },
         
                 o if o == Opcode::ADD as u32 => {
-                    operations::addition(self, 
-                        reg_a_val, 
-                        reg_b_val, 
-                        reg_c_val)
+                    self.registers[reg_a] = ((reg_b_val as u64 + reg_c_val as u64) % 2_u64.pow(32)) as u32;
                     },
         
                 o if o == Opcode::MUL as u32 => {
-                    operations::multiplication(self, 
-                        reg_a_val, 
-                        reg_b_val, 
-                        reg_c_val)
+                    self.registers[reg_a] = ((reg_b_val as u64 * reg_c_val as u64) % 2_u64.pow(32)) as u32;
                     },
         
                 o if o == Opcode::DIV as u32 => {
                     if reg_c_val == 0 {
                         panic!();
                     }
-                    reg_a_val = reg_b_val / machine.registers[register_c as usize];
+                    self.registers[reg_a] = reg_b_val / reg_c_val;
                    },
                     
                 o if o == Opcode::BitNAND as u32 => {
-                    reg_a_val = !(reg_b_val & reg_c_val);
+                    self.registers[reg_a] = !(reg_b_val & reg_c_val);
                    },
         
                 o if o == Opcode::HALT as u32 => {
@@ -151,12 +141,11 @@ impl UM {
                     if !self.queue.is_empty() {
                         let index_num = self.queue.pop().unwrap();
                         self.memory[index_num as usize] = new_seg_to_map;
-                        reg_b_val = index_num;
+                        self.registers[reg_b] = index_num;
                     } else {
-                        reg_b_val = self.memory.len() as u32;
+                        self.registers[reg_b] = self.memory.len() as u32;
                         self.memory.push(new_seg_to_map);
                     }
-                    // return reg_b_val;
                     },
         
                 o if o == Opcode::UnmapSeg as u32 => {
@@ -176,8 +165,8 @@ impl UM {
                     let mut buff:[u8; 1] = [0];
                     let num_bytes_read = std::io::stdin().read(&mut buff); // update the contents of buffer from stdin, returns the number of bytes read
                     match num_bytes_read {
-                        Ok(1) => reg_c_val = buff[0] as u32,
-                        Ok(0) => reg_c_val = u32::MAX,
+                        Ok(1) => self.registers[reg_c] = buff[0] as u32,
+                        Ok(0) => self.registers[reg_c] = u32::MAX,
                         _ => panic!(),
                     }
                 },
@@ -191,8 +180,10 @@ impl UM {
                 },
         
                 o if o == Opcode::LoadValue as u32 => {
+                    let reg_a_prime = get(&RL, individual_instruction);
+                    let val = get(&VL, individual_instruction);
+
                     self.registers[reg_a_prime as usize] = val;
-                    self.registers[reg_a_prime as usize];
                 },
         
                 _ => {
@@ -201,6 +192,7 @@ impl UM {
             }
             if get(&OP, individual_instruction) != 12 {
                 self.program_counter += 1;
+                //println!("Inc");
             }
             }
         }
